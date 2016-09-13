@@ -8,6 +8,7 @@ require 'thread'
 
 module Agrec
     class Client
+        RECORD_TIME = 60*30
         SERVER_LIST = ["rtmp://fms-base1.mitene.ad.jp/agqr/aandg11", "rtmp://fms-base2.mitene.ad.jp/agqr/aandg11", "rtmp://fms-base2.mitene.ad.jp/agqr/aandg22"]
         def initialize(**args)
             @save_dir = "."
@@ -16,7 +17,15 @@ module Agrec
         end
 
         def start
-            @record_thread = Thread.new(SERVER_LIST[i], &method(:record)) unless isAlive?
+            filename = ""
+            i = 0
+            loop do
+                @record_thread = Thread.new(SERVER_LIST[i], &method(:record))
+                @record_thread.join
+                filename = get_program["Program_name"]
+                rename filename
+                puts "30min"
+            end
         end
 
         def stop
@@ -51,16 +60,31 @@ module Agrec
         def record url
             filename = "tmp"
             if @rtmpdump_path.nil?
-                system("rtmpdump -r #{url} --live -o #{@save_dir}/#{filename}.flv")
+                if system("rtmpdump -r #{url} --live -B #{RECORD_TIME} -o #{@save_dir}/#{filename}.flv 2> /dev/null")
+                    puts "RECORD SUCCESS"
+                else
+                    puts "RTMPDUMP STOP"
+                end
             else
                 puts "#{@rtmpdump_path} -r #{url} --live -o #{@save_dir}/#{filename}.flv"
-                if system("#{@rtmpdump_path} -r #{url} --live -o #{@save_dir}/#{filename}.flv")
+                if system("#{@rtmpdump_path} -r #{url} --live -B #{RECORD_TIME} -o #{@save_dir}/#{filename}.flv 2> /dev/null")
                     puts "RECORD SUCCESS"
                 else
                     puts "RTMPDUMP STOP"
                 end
             end
 
+        end
+
+        def rename filename
+            puts filename
+            filename = filename.gsub(/(\s)/,"")
+            day = Time.now
+            begin
+                File.rename("#{@save_dir}/tmp.flv", "#{@save_dir}/#{filename}#{day.strftime("%y%m%d%H%M")}.flv")
+            rescue => ex
+                puts ex
+            end
         end
     end
 end
