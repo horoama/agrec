@@ -22,9 +22,7 @@ module Agrec
             loop do
                 @record_thread = Thread.new(SERVER_LIST[i], &method(:record))
                 @record_thread.join
-                filename = get_program["Program_name"]
-                rename filename
-                puts "30min"
+                rename get_program
             end
         end
 
@@ -38,14 +36,9 @@ module Agrec
 
         private
 
-
         def parse_var text
-            ret = {}
-            text.split("\n").each do |line|
-                words = line.split
-                ret[words[1]] = words[3].force_encoding("utf-8").gsub(/(\;|\')/, "") if words[3] != nil
-            end
-            ret
+            program_name_line = text.split("\n")[0]
+            program_name_line.split('\'')[1].force_encoding("utf-8")
         end
 
         def get_program
@@ -77,7 +70,7 @@ module Agrec
         end
 
         def rename filename
-            puts filename
+            puts "RECORDED: " + filename
             filename = filename.gsub(/(\s)/,"")
             day = Time.now
             begin
